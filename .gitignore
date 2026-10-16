@@ -1,0 +1,19 @@
+# Config (ne pas publier les credentials)
+config/database.local.php
+
+# Logs
+*.log
+
+# Backup
+*.sql.bak
+*.sql~
+
+# macOS
+.DS_Store
+
+# VSCode
+.vscode/
+.idea/
+
+# Windows
+Thumbs.db
