@@ -152,3 +152,4 @@ jsonResponse([
         'totalBadges'      => count($badges),
     ],
 ]);
+

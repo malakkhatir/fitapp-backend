@@ -44,3 +44,4 @@ foreach ($programs as &$p) {
 }
 
 jsonResponse($programs);
+

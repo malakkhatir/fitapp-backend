@@ -73,3 +73,4 @@ INSERT INTO program_exercises (program_id, exercise_id, ordre) VALUES
   (1, 1, 1), (1, 4, 2),
   (2, 2, 1), (2, 4, 2),
   (3, 1, 1), (3, 3, 2), (3, 4, 3);
+

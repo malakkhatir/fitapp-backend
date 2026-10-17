@@ -11,3 +11,4 @@ if ($token) {
 }
 
 jsonResponse(['success' => true]);
+

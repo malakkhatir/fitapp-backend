@@ -91,3 +91,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'PUT') {
 }
 
 jsonError('Méthode non autorisée', 405);
+

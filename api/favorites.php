@@ -55,3 +55,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'DELETE') {
 }
 
 jsonError('Méthode non autorisée', 405);
+
