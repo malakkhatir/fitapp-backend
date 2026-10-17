@@ -63,7 +63,7 @@ function requireAuth() {
     if (!$token) jsonError('Token manquant', 401);
 
     $pdo = getPDO();
-    $stmt = $pdo->prepare('SELECT id, prenom, email, objectif_hebdo FROM users WHERE token = ?');
+    $stmt = $pdo->prepare('SELECT id, prenom, email, objectif_hebdo, photo_url, poids, taille, age, sexe FROM users WHERE token = ?');
     $stmt->execute([$token]);
     $user = $stmt->fetch();
 
