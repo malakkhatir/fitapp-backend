@@ -10,7 +10,7 @@ $motDePasse = $body['motDePasse'] ?? '';
 if ($email === '' || $motDePasse === '') jsonError('Champs manquants');
 
 $pdo = getPDO();
-$stmt = $pdo->prepare('SELECT id, prenom, email, mot_de_passe, objectif_hebdo FROM users WHERE email = ?');
+$stmt = $pdo->prepare('SELECT id, prenom, email, mot_de_passe, objectif_hebdo, photo_url FROM users WHERE email = ?');
 $stmt->execute([$email]);
 $user = $stmt->fetch();
 
@@ -31,5 +31,6 @@ jsonResponse([
         'prenom'        => $user['prenom'],
         'email'         => $user['email'],
         'objectifHebdo' => (int)$user['objectif_hebdo'],
+        'photoUrl' => $user['photo_url'] ? 'http://' . $_SERVER['HTTP_HOST'] . '/fitapp-backend/' . $user['photo_url'] : null,
     ],
 ]);

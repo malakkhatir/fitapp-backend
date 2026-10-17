@@ -20,6 +20,7 @@ if ($prenom === '') jsonError('Prénom obligatoire', 400);
         'prenom'        => $prenom,
         'email'         => $user['email'],
         'objectifHebdo' => $objectif,
+        'photoUrl' => $user['photo_url'] ? 'http://' . $_SERVER['HTTP_HOST'] . '/fitapp-backend/' . $user['photo_url'] : null,
     ]);
 }
 

@@ -16,4 +16,7 @@ config/database.local.php
 .idea/
 
 # Windows
-Thumbs.db
+Thumbs.db  
+# Uploads (avatars utilisateurs)
+uploads/avatars/*
+!uploads/avatars/.gitkeep

@@ -42,5 +42,6 @@ jsonResponse([
         'prenom'        => $prenom,
         'email'         => $email,
         'objectifHebdo' => 3,
+        'photoUrl' => $user['photo_url'] ? 'http://' . $_SERVER['HTTP_HOST'] . '/fitapp-backend/' . $user['photo_url'] : null,
     ],
 ], 201);
