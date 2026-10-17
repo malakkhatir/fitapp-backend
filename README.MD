@@ -15,7 +15,11 @@ Ce dépôt contient l'**API REST** qui alimente l'application mobile **FitApp**.
 
 - 🔐 L'**authentification** des utilisateurs (inscription, connexion, déconnexion)
 - 🏋️ Le **catalogue d'exercices** (60 exercices répartis par zone et niveau)
-- 📋 Les **programmes sportifs** (20 programmes : débutant, intermédiaire, avancé)
+- 📋 Les **programmes sportifs** (20 programmes standards + programmes personnalisés)
+- ⭐ Les **favoris** des utilisateurs
+- 💬 Les **commentaires** sur les exercices
+- 🏆 Les **badges** (achievements) calculés dynamiquement
+- 📸 L'**upload de photos de profil**
 - 📊 L'**historique des séances** et la **progression** dans les programmes
 
 L'application mobile (React Native + Expo) consomme cette API via des requêtes HTTP avec authentification par **token Bearer**.
@@ -29,9 +33,13 @@ L'application mobile (React Native + Expo) consomme cette API via des requêtes 
 | Fonctionnalité | Description |
 |---|---|
 | 🔐 **Authentification** | Inscription, connexion, déconnexion avec hash bcrypt |
-| 👤 **Profil utilisateur** | Modification du prénom et de l'objectif hebdomadaire |
+| 👤 **Profil utilisateur** | Modification du prénom, poids, taille, âge, objectif de poids |
 | 🏋️ **Exercices** | 60 exercices avec filtres (zone, niveau, catégorie) |
-| 📋 **Programmes** | 20 programmes (Filles, Garçons, Mobilité, Force, Masse...) |
+| 📋 **Programmes** | 20 programmes + Création/Modification de programmes personnalisés |
+| ⭐ **Favoris** | Ajout/Suppression d'exercices favoris |
+| 💬 **Commentaires** | Ajout/Suppression de commentaires sur les exercices |
+| 🏆 **Badges** | 10 badges débloqués selon l'activité (streak, séances, favoris...) |
+| 📸 **Avatar** | Upload de photo de profil avec validation MIME |
 | 📊 **Suivi de séances** | Enregistrement et suppression des séances réalisées |
 | 🎯 **Progression programmes** | Déblocage séance par séance avec suivi en base |
 | 🔒 **Sécurité** | Tokens Bearer, mots de passe hashés (bcrypt), PDO préparé |
@@ -61,8 +69,15 @@ fitapp-backend/
 │   ├── profile.php               # PUT    — Modifier profil
 │   ├── exercises.php             # GET    — Liste exercices
 │   ├── programs.php              # GET    — Liste programmes
+│   ├── custom-program.php        # POST/PUT/DELETE — Programmes personnalisés
+│   ├── favorites.php             # GET/POST/DELETE — Favoris
+│   ├── comments.php              # GET/POST/DELETE — Commentaires
+│   ├── badges.php                # GET    — Badges
+│   ├── upload-avatar.php         # POST   — Upload photo
 │   ├── sessions.php              # GET/POST/DELETE — Historique séances
 │   └── program-progress.php      # GET/POST/DELETE — Progression programmes
+├── uploads/
+│   └── avatars/                  # Dossier de stockage des photos
 ├── sql/
 │   └── fitapp.sql                # Script de création de la base + données
 ├── .gitignore
@@ -75,7 +90,7 @@ fitapp-backend/
 
 ### Prérequis
 
-- [XAMPP](https://www.apachefriends.org/fr/index.html) (Apache + MySQL)
+- XAMPP (Apache + MySQL)
 - Navigateur web (pour phpMyAdmin)
 
 ### Étape 1 — Cloner le dépôt
@@ -84,31 +99,31 @@ fitapp-backend/
 git clone https://github.com/malakkhatir/fitapp-backend.git
 ```
 
-Place ensuite le dossier dans `C:\xampp\htdocs\` :
+Place ensuite le dossier dans le répertoire XAMPP (`htdocs`) :
 
 ```text
-C:\xampp\htdocs\fitapp-backend\
+C:/xampp/htdocs/fitapp-backend
 ```
 
 ### Étape 2 — Démarrer XAMPP
 
-Ouvre le **XAMPP Control Panel** et démarre :
+Ouvre le XAMPP Control Panel et démarre :
 
-- ✅ **Apache**
-- ✅ **MySQL**
+- ✅ Apache
+- ✅ MySQL
 
 ### Étape 3 — Créer la base de données
 
-1. Ouvre **phpMyAdmin** : [http://localhost/phpmyadmin/](http://localhost/phpmyadmin/)
+1. Ouvre phpMyAdmin : <http://localhost/phpmyadmin/>
 2. Clique sur l'onglet **Importer**
 3. Sélectionne le fichier `sql/fitapp.sql`
 4. Clique sur **Exécuter**
 
 La base `fitapp` est créée avec :
 
-- 6 tables : `users`, `exercises`, `programs`, `program_exercises`, `sessions`, `program_progress`
-- **60 exercices** répartis par zone (Abdos, Fessiers, Cuisses, Hanches...)
-- **20 programmes** (Débutant, Intermédiaire, Avancé)
+- 8 tables : `users`, `exercises`, `programs`, `program_exercises`, `sessions`, `program_progress`, `favorites`, `comments`
+- 60 exercices répartis par zone
+- 20 programmes (Débutant, Intermédiaire, Avancé)
 
 ### Étape 4 — Configuration
 
@@ -146,7 +161,7 @@ http://localhost/fitapp-backend/api
 Depuis un téléphone (même Wi-Fi) :
 
 ```text
-http://<TON-IP-LOCALE>/fitapp-backend/api
+http://TON-IP-LOCALE/fitapp-backend/api
 ```
 
 Exemple : `http://192.168.1.42/fitapp-backend/api`
@@ -156,132 +171,87 @@ Exemple : `http://192.168.1.42/fitapp-backend/api`
 Les endpoints protégés nécessitent un header :
 
 ```text
-Authorization: Bearer <TON_TOKEN>
+Authorization: Bearer TON_TOKEN
 ```
 
 Le token est retourné par `/register.php` et `/login.php`.
 
 ---
 
-### 📌 Endpoints
+## 📌 Endpoints
 
-#### 🔐 Authentification
-
-| Méthode | Endpoint | Auth | Description |
-|---|---|---|---|
-| `POST` | `/register.php` | ❌ | Créer un compte |
-| `POST` | `/login.php` | ❌ | Se connecter |
-| `POST` | `/logout.php` | ✅ | Se déconnecter |
-
-**Exemple — `POST /register.php`**
-
-Requête :
-
-```json
-{
-  "prenom": "Malak",
-  "email": "malak@example.com",
-  "motDePasse": "123456"
-}
-```
-
-Réponse (201) :
-
-```json
-{
-  "token": "a3f9c2e...",
-  "user": {
-    "id": 1,
-    "prenom": "Malak",
-    "email": "malak@example.com",
-    "objectifHebdo": 3
-  }
-}
-```
-
----
-
-#### 👤 Profil
+### 🔐 Authentification
 
 | Méthode | Endpoint | Auth | Description |
 |---|---|---|---|
-| `PUT` | `/profile.php` | ✅ | Modifier prénom + objectif |
+| POST | `/register.php` | ❌ | Créer un compte |
+| POST | `/login.php` | ❌ | Se connecter |
+| POST | `/logout.php` | ✅ | Se déconnecter |
 
-**Exemple — `PUT /profile.php`**
-
-Requête :
-
-```json
-{
-  "prenom": "Malak",
-  "objectifHebdo": 5
-}
-```
-
----
-
-#### 🏋️ Exercices
+### 👤 Profil
 
 | Méthode | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/exercises.php` | ❌ | Liste tous les exercices |
-| `GET` | `/exercises.php?niveau=Débutant` | ❌ | Filtrer par niveau |
-| `GET` | `/exercises.php?categorie=Cardio` | ❌ | Filtrer par catégorie |
-| `GET` | `/exercises.php?zone=Abdos` | ❌ | Filtrer par zone |
+| PUT | `/profile.php` | ✅ | Modifier prénom, poids, taille, objectif |
 
----
-
-#### 📋 Programmes
+### 🏋️ Exercices
 
 | Méthode | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/programs.php` | ❌ | Liste tous les programmes |
-| `GET` | `/programs.php?niveau=Avancé` | ❌ | Filtrer par niveau |
-| `GET` | `/programs.php?public=Filles` | ❌ | Filtrer par public |
-| `GET` | `/programs.php?objectif=Fessiers` | ❌ | Filtrer par objectif |
+| GET | `/exercises.php` | ❌ | Liste tous les exercices |
 
----
-
-#### 📊 Séances (Historique)
+### 📋 Programmes
 
 | Méthode | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/sessions.php` | ✅ | Historique de l'utilisateur |
-| `POST` | `/sessions.php` | ✅ | Ajouter une séance terminée |
-| `DELETE` | `/sessions.php?id=X` | ✅ | Supprimer une séance |
+| GET | `/programs.php` | ❌ | Liste tous les programmes (standards + perso) |
+| POST | `/custom-program.php` | ✅ | Créer un programme |
+| PUT | `/custom-program.php?id=X` | ✅ | Modifier un programme |
+| DELETE | `/custom-program.php?id=X` | ✅ | Supprimer un programme |
 
-**Exemple — `POST /sessions.php`**
-
-Requête :
-
-```json
-{
-  "programmeId": 1,
-  "nomProgramme": "Découverte",
-  "minutes": 20
-}
-```
-
----
-
-#### 🎯 Progression programmes
+### ⭐ Favoris
 
 | Méthode | Endpoint | Auth | Description |
 |---|---|---|---|
-| `GET` | `/program-progress.php?programId=X` | ✅ | Sessions terminées |
-| `POST` | `/program-progress.php` | ✅ | Marquer une session terminée |
-| `DELETE` | `/program-progress.php?programId=X` | ✅ | Réinitialiser la progression |
+| GET | `/favorites.php` | ✅ | Liste des favoris |
+| POST | `/favorites.php` | ✅ | Ajouter un favori |
+| DELETE | `/favorites.php?exerciseId=X` | ✅ | Supprimer un favori |
 
-**Exemple — `POST /program-progress.php`**
+### 💬 Commentaires
 
-Requête :
+| Méthode | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/comments.php?exerciseId=X` | ✅ | Liste des commentaires |
+| POST | `/comments.php` | ✅ | Ajouter un commentaire |
+| DELETE | `/comments.php?id=X` | ✅ | Supprimer son commentaire |
 
-```json
-{
-  "programId": 1,
-  "sessionIndex": 0
-}
-```
+### 🏆 Badges
+
+| Méthode | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/badges.php` | ✅ | Liste des badges + progression |
+
+### 📸 Avatar
+
+| Méthode | Endpoint | Auth | Description |
+|---|---|---|---|
+| POST | `/upload-avatar.php` | ✅ | Uploader une photo de profil |
+
+### 📊 Séances (Historique)
+
+| Méthode | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/sessions.php` | ✅ | Historique |
+| POST | `/sessions.php` | ✅ | Ajouter une séance |
+| DELETE | `/sessions.php?id=X` | ✅ | Supprimer une séance |
+
+### 🎯 Progression programmes
+
+| Méthode | Endpoint | Auth | Description |
+|---|---|---|---|
+| GET | `/program-progress.php?programId=X` | ✅ | Sessions terminées |
+| POST | `/program-progress.php` | ✅ | Marquer une session terminée |
+| DELETE | `/program-progress.php?programId=X` | ✅ | Réinitialiser la progression |
 
 ---
 
@@ -295,64 +265,62 @@ users
 ├── mot_de_passe (hash bcrypt)
 ├── token (Bearer)
 ├── objectif_hebdo
+├── poids, taille, age, sexe, target_weight, photo_url
 └── created_at
 
 exercises
 ├── id (PK)
-├── nom
-├── categorie
-├── zone
-├── niveau
-├── duree
-├── repetitions
-├── description
-├── instructions
-├── icone
-└── image_url
+├── nom, categorie, zone, niveau
+├── duree, repetitions, description, instructions
+├── icone, image_url
 
 programs
 ├── id (PK)
-├── titre
-├── niveau
-├── public
-├── objectif
-├── duree
-├── description
-├── icone
-└── image_url
+├── user_id (FK vers users, NULL si standard)
+├── is_custom (0/1)
+├── titre, niveau, public, objectif
+├── duree, description, icone, image_url
 
 program_exercises
-├── program_id (FK → programs)
-├── exercise_id (FK → exercises)
+├── program_id (FK vers programs)
+├── exercise_id (FK vers exercises)
 └── ordre
 
 sessions
 ├── id (PK)
-├── user_id (FK → users)
-├── programme_id (FK → programs)
-├── nom_programme
-├── date
-└── minutes
+├── user_id (FK vers users)
+├── programme_id (FK vers programs)
+├── nom_programme, date, minutes
 
 program_progress
 ├── id (PK)
-├── user_id (FK → users)
-├── program_id (FK → programs)
-├── session_index
-└── completed_at
+├── user_id (FK vers users)
+├── program_id (FK vers programs)
+├── session_index, completed_at
+
+favorites
+├── id (PK)
+├── user_id (FK vers users)
+├── exercise_id (FK vers exercises)
+└── created_at
+
+comments
+├── id (PK)
+├── user_id (FK vers users)
+├── exercise_id (FK vers exercises)
+├── content
+└── created_at
 ```
 
 ---
 
 ## 🔒 Sécurité
 
-- ✅ **Mots de passe hashés** avec `password_hash()` (bcrypt)
-- ✅ **Requêtes préparées** (PDO) contre les injections SQL
-- ✅ **Tokens Bearer** générés avec `random_bytes(32)`
-- ✅ **Validation des entrées** côté serveur
-- ✅ **Messages d'erreur génériques** (pas de divulgation d'info)
-
-> ⚠️ **Pour la production** : utiliser HTTPS, ne pas committer `config/database.local.php`, limiter les origines CORS.
+- ✅ Mots de passe hashés avec `password_hash()` (bcrypt)
+- ✅ Requêtes préparées (PDO) contre les injections SQL
+- ✅ Tokens Bearer générés avec `random_bytes(32)`
+- ✅ Validation des entrées côté serveur
+- ✅ Messages d'erreur génériques
 
 ---
 
@@ -367,11 +335,11 @@ http://localhost/fitapp-backend/api/programs.php
 
 ### Avec Postman / Thunder Client
 
-**Inscription** :
+#### Inscription
 
-- Method : `POST`
-- URL : `http://localhost/fitapp-backend/api/register.php`
-- Body (JSON) :
+- **Method** : `POST`
+- **URL** : `http://localhost/fitapp-backend/api/register.php`
+- **Body (JSON)** :
 
 ```json
 {
@@ -381,11 +349,11 @@ http://localhost/fitapp-backend/api/programs.php
 }
 ```
 
-**Connexion** :
+#### Connexion
 
-- Method : `POST`
-- URL : `http://localhost/fitapp-backend/api/login.php`
-- Body (JSON) :
+- **Method** : `POST`
+- **URL** : `http://localhost/fitapp-backend/api/login.php`
+- **Body (JSON)** :
 
 ```json
 {
@@ -394,12 +362,6 @@ http://localhost/fitapp-backend/api/programs.php
 }
 ```
 
-**Récupérer les séances** (avec token) :
-
-- Method : `GET`
-- URL : `http://localhost/fitapp-backend/api/sessions.php`
-- Header : `Authorization: Bearer <TON_TOKEN>`
-
 ---
 
 ## 🚑 Dépannage
@@ -407,28 +369,9 @@ http://localhost/fitapp-backend/api/programs.php
 | Problème | Solution |
 |---|---|
 | `SQLSTATE[HY000] [1049] Unknown database` | Vérifie que la base `fitapp` est créée (étape 3) |
-| `Token invalide ou expiré` | Reconnecte-toi pour obtenir un nouveau token |
-| `Impossible de joindre le serveur` | Vérifie que XAMPP (Apache + MySQL) est démarré et que l'IP est correcte |
-| `Réponse invalide du serveur` | Erreur PHP — regarde `C:\xampp\apache\logs\error.log` |
-| Page blanche | Active `display_errors` dans `php.ini` pour voir l'erreur |
-
----
-
-## 🤝 Contribuer
-
-Les contributions sont les bienvenues ! Pour proposer une amélioration :
-
-1. Fork le projet
-2. Crée une branche (`git checkout -b feature/ma-fonctionnalite`)
-3. Commit (`git commit -m 'Ajout de ma fonctionnalité'`)
-4. Push (`git push origin feature/ma-fonctionnalite`)
-5. Ouvre une **Pull Request**
-
----
-
-## 📄 Licence
-
-Ce projet est sous licence **MIT** — voir le fichier `LICENSE` pour plus de détails.
+| Token invalide ou expiré | Reconnecte-toi pour obtenir un nouveau token |
+| Impossible de joindre le serveur | Vérifie que XAMPP (Apache + MySQL) est démarré et que l'IP est correcte |
+| Réponse invalide du serveur | Erreur PHP — regarde le fichier de log d'Apache |
 
 ---
 
@@ -441,12 +384,6 @@ Ce projet est sous licence **MIT** — voir le fichier `LICENSE` pour plus de d�
 
 ---
 
-## 🙏 Remerciements
+## 📄 Licence
 
-- [XAMPP](https://www.apachefriends.org/) pour l'environnement de développement
-- [PHP](https://www.php.net/) et [MySQL](https://www.mysql.com/) pour le backend
-- [Unsplash](https://unsplash.com/) pour les images des exercices
-- La communauté React Native / Expo pour le frontend
-
----
-
+Ce projet est sous licence **MIT**. Voir le fichier `LICENSE` pour plus de détails.
